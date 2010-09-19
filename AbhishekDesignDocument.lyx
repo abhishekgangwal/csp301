@@ -1,0 +1,965 @@
+#LyX 1.6.5 created this file. For more info see http://www.lyx.org/
+\lyxformat 345
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\language english
+\inputencoding auto
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\paperfontsize default
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 1
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\author "" 
+\author "" 
+\end_header
+
+\begin_body
+
+\begin_layout Title
+
+\size huge
+PingPong
+\end_layout
+
+\begin_layout Author
+Abhishek Gangwal
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+tableofcontents
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+newpage
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+
+\size normal
+Introduction 
+\end_layout
+
+\begin_layout Standard
+This program intends to build a multi thread process game ping-pong where
+ each player tries to prevent the ball from passing through his/her side
+ wall and also at the same time tries to send the ball past the paddle of
+ some other player.
+ The game can be played by one player (against the computer), two players
+ (against each other with side walls bricked), three players (with only
+ one side of the screen bricked), and four players (the screen is open on
+ all four sides, and protected by the paddles of each player).
+ 'bricked' means that the side is controlled by the computer.
+\end_layout
+
+\begin_layout Standard
+The game will also provide the player the leverage to play with other players
+ over the internet.
+ This design document intends to help the developers with the minute details
+ of the project giving details about implementing various processes and
+ synchronizing them.
+ 
+\end_layout
+
+\begin_layout Section
+Game Concepts and Objectives
+\end_layout
+
+\begin_layout Standard
+Ping-pong is a simple game where you try to prevent the ball from passing
+ through your side of the wall by hitting it with a paddle and at the same
+ time try to make it pass through the opponent's side.
+ Every time the ball passes through a player's side, his fault is increased
+ by 1.
+ Player with minimum number of faults at the end of specified time is declared
+ the winner.
+\end_layout
+
+\begin_layout Section
+Executing game 
+\end_layout
+
+\begin_layout Subsection
+game help
+\end_layout
+
+\begin_layout Standard
+$ make help will show a short help screen.
+\end_layout
+
+\begin_layout Subsection
+To play the game,
+\end_layout
+
+\begin_layout Enumerate
+Create a parameter file.
+ This is a text file containing the desired setup of PingPong.
+ The parameters include :
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+Server IP
+\end_layout
+
+\begin_layout Enumerate
+Own IP
+\end_layout
+
+\begin_layout Enumerate
+Port Number
+\end_layout
+
+\begin_layout Enumerate
+Number of players
+\end_layout
+
+\begin_layout Enumerate
+Number of balls
+\end_layout
+
+\begin_layout Enumerate
+Hardness Level
+\end_layout
+
+\begin_layout Enumerate
+Game Length
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+Execute game as : 
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+$ make server ( if you are a server )
+\end_layout
+
+\begin_layout Enumerate
+$ make client ( if you are a client )
+\end_layout
+
+\begin_layout Enumerate
+$ make doublegame ( if two player game on same computer )
+\end_layout
+
+\begin_layout Enumerate
+$ make singlegame ( to play a single player game and specify no.
+ of players =1 in parameter file)
+\end_layout
+
+\begin_layout Enumerate
+$ make computer ( to see match between both computer players)
+\end_layout
+
+\end_deeper
+\begin_layout Section
+
+\size normal
+Controls 
+\end_layout
+
+\begin_layout Standard
+Playing the game 
+\end_layout
+
+\begin_layout Standard
+Ping-Pong is a simple game where you move your paddle left and right .
+\end_layout
+
+\begin_layout Subsection
+For 1 player game
+\end_layout
+
+\begin_layout Itemize
+Left arrow key : moves paddle to left 
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Right arrow key : moves paddle to right 
+\end_layout
+
+\begin_layout Itemize
+The escape key : Terminates Ping-Pong 
+\end_layout
+
+\begin_layout Itemize
+The F1 key : Help 
+\end_layout
+
+\begin_layout Subsection
+For 2 player game
+\end_layout
+
+\begin_layout Subsubsection
+Player 1
+\end_layout
+
+\begin_layout Itemize
+Left Arrow key : moves paddle to left
+\end_layout
+
+\begin_layout Itemize
+Right Arrow key : moves paddle to right
+\end_layout
+
+\begin_layout Subsubsection
+Player 2
+\end_layout
+
+\begin_layout Itemize
+A : moves paddle to left
+\end_layout
+
+\begin_layout Itemize
+D: moves paddle to right
+\end_layout
+
+\begin_layout Itemize
+Esc : Terminate Ping-Pong
+\end_layout
+
+\begin_layout Itemize
+F1 : Help
+\end_layout
+
+\end_deeper
+\begin_layout Section
+
+\size normal
+Game System
+\end_layout
+
+\begin_layout Subsection
+
+\size normal
+Field Specification 
+\end_layout
+
+\begin_layout Standard
+Field is a square table of dimensions 10
+\begin_inset Quotes erd
+\end_inset
+
+ X 10
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+
+\size normal
+Paddles 
+\end_layout
+
+\begin_layout Standard
+Lent of paddles is 3
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+paddles hit ball with maximum power when hit by center.
+ Power decreases as ball moves away from center.
+ 
+\end_layout
+
+\begin_layout Subsection
+
+\size normal
+Ball
+\end_layout
+
+\begin_layout Standard
+Radius of ball is .25
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Number of balls in game can be varied from 1 to 3.
+\end_layout
+
+\begin_layout Standard
+Dimensions of field are as shown in fig.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename table1.png
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+
+\size normal
+Game Physics
+\end_layout
+
+\begin_layout Standard
+The game physics will be realistic to a degree.
+ They will be based upon a realistic physics handling based on concepts
+ of collision theory and friction.
+ 
+\end_layout
+
+\begin_layout Subsection
+
+\size normal
+Collision Model
+\end_layout
+
+\begin_layout Standard
+Ball collides elastically with bricked walls.
+ While collision with paddle depends on the position of collision relative
+ to centre of paddle.
+ 
+\end_layout
+
+\begin_layout Standard
+If ball collides at centre of paddle, angle of inclination is same as angle
+ of reflection.
+ While angle of reflection varies slightly as collision point moves away
+ from paddle.
+ This is done to make game more variable and to avoid dead locks.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+$ 
+\backslash
+angle R = 
+\backslash
+angle i + x * 
+\backslash
+theta$
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+where 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+$
+\backslash
+angle$
+\end_layout
+
+\end_inset
+
+i is angle of inclination 
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+$
+\backslash
+angle$
+\end_layout
+
+\end_inset
+
+r is angle of reflection 
+\end_layout
+
+\begin_layout Itemize
+x is displacement from centre ( +ve or -ve) 
+\end_layout
+
+\begin_layout Itemize
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+$
+\backslash
+theta$
+\end_layout
+
+\end_inset
+
+ is a constant of proportionality 
+\end_layout
+
+\begin_layout Standard
+Speed of ball remains same on elastic collision while colliding with paddle
+ , it depends again on position of collision point relative to centre.
+ Reflection speed is maximum at collision at center.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+$V_{ref} = V_{inc} * {
+\backslash
+alpha} - { | x * {
+\backslash
+beta} | }  $
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Collision between balls
+\end_layout
+
+\begin_layout Standard
+In case of more than one balls , collisions will be completely elastic and
+ velocity of both balls become opposite to each other
+\end_layout
+
+\begin_layout Subsection
+
+\size normal
+Friction Model 
+\end_layout
+
+\begin_layout Standard
+Velocity of ball decreases as ball moves on table due to friction 
+\end_layout
+
+\end_deeper
+\begin_layout Section
+
+\size normal
+Graphic Design : 
+\end_layout
+
+\begin_layout Subsection
+
+\size normal
+User Friendly Features : 
+\end_layout
+
+\begin_layout Standard
+OpenGL is somewhat user friendly, including user interface features such
+ as the following: 
+\end_layout
+
+\begin_layout Itemize
+When the player resizes the game window, the application responds in two
+ intuitive ways: 
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+It uses the longer dimension of the resized window to set the size of all
+ game board objects.
+ 
+\end_layout
+
+\begin_layout Itemize
+The game board size is adjusted to have the same aspect ratio as the resized
+ window.
+ 
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Also, the positions of all game board objects are wrapped-around to fit
+ in the new game board.
+\end_layout
+
+\begin_layout Itemize
+While playing the game over a network, the player playing on a particular
+ computer will always look himself playing at the bottom only.
+\end_layout
+
+\begin_layout Subsection
+GUI
+\end_layout
+
+\begin_layout Itemize
+Graphical User Interface include Static Interfaces like Ping Pong table
+ and Dynamic interfaces like ball and paddles.
+\end_layout
+
+\begin_layout Itemize
+When a key is pressed, it calls a function in the application, called a
+ SpecialKeyFunction.
+ When the application returns control to the library, it calls the application's
+ window redraw function.
+ This function must update the state of the game board before drawing the
+ window: if it did not do so, the animation would become jerky, as the new
+ frame would be identical to the previous one.
+ It follows that, as the idle function is also expected to update the board
+ and redraw the window, the same application function can be used as both
+ the idle function and the window redraw function.
+\end_layout
+
+\begin_layout Itemize
+For a smooth animation, key-press callbacks should not incrementally update
+ the orientation of the player's paddle.
+ If this were the case, the paddle would either move too slowly - as the
+ user can only press keys so fast -, or it would turn in large, visibly
+ discrete, steps.
+ Instead, most key-press callbacks in Ping Pong set global variables, indicating
+ a request such as "the user wishes to move right".
+ These variables remain set until the user releases the key.
+ While the key is held down, and the corresponding global variables are
+ set, the player's paddle moves slightly every time the game board is updated.
+ 
+\end_layout
+
+\begin_layout Section
+
+\size normal
+State and Data Abstraction 
+\end_layout
+
+\begin_layout Standard
+C++ language is used to implement the game.
+ Concepts of Object Oriented Programming are used.
+ 
+\end_layout
+
+\begin_layout Subsection
+
+\size normal
+Graphical Interfaces : 
+\end_layout
+
+\begin_layout Standard
+Two kind of interfaces 
+\end_layout
+
+\begin_layout Standard
+1) Obstacles : These are non movable objects like table which will affect
+ the behaviour of ball 
+\end_layout
+
+\begin_layout Standard
+2) Movables : These include ball and Paddles which are used to play the
+ game.
+ 
+\end_layout
+
+\begin_layout Subsection
+
+\size normal
+Classes : 
+\end_layout
+
+\begin_layout Enumerate
+Ball : 
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+Ball is a class that holds ball parameters.
+ It creates spherical ball of specified radius and coordinates.
+\end_layout
+
+\begin_layout Enumerate
+Elements : float x,float y (ball coordinates) ,float vx,vy ( velocity of
+ ball) 
+\end_layout
+
+\begin_layout Enumerate
+Methods : move_horizontal(), move_verticle() changeVelocity(int i, float
+ x) : changes velocity of ball i specifies velocity change due to friction
+ or collisions x specifies distance between collision point and centre of
+ bar.
+ 
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+Player : 
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+It is a simple class that holds info about each player 
+\end_layout
+
+\begin_layout Enumerate
+Elements : x,y (coordinates) , Score, speed 
+\end_layout
+
+\begin_layout Enumerate
+Methods : moveHorizontal(int x) (moves left or right) , moveVertical(int
+ x) (moves up or down) 
+\end_layout
+
+\end_deeper
+\begin_layout Section
+Audio
+\end_layout
+
+\begin_layout Standard
+Various sounds used in the game are:
+\end_layout
+
+\begin_layout Itemize
+Background music: This will be a soft tone that will be played continuosly
+ in the background throughout the duration of the game.
+\end_layout
+
+\begin_layout Itemize
+Knocking sound: This sound is to be played each time a player knocks any
+ ball.
+\end_layout
+
+\begin_layout Itemize
+Applause : This sound will be played whenever any player will score a point.
+ 
+\end_layout
+
+\begin_layout Paragraph
+Implementation:
+\end_layout
+
+\begin_layout Standard
+All the music files are to be contained in a folder and will be played at
+ specific times only.
+ The background music will be played using a different process which will
+ be forked out initially using fork command and run by the exec() command.
+ The other sounds will be generated inside the game only.
+ When the game ends, the music files are also closed using the kill command.
+ 
+\end_layout
+
+\begin_layout Section
+
+\size normal
+Processes 
+\end_layout
+
+\begin_layout Standard
+Processes : To move various paddles simultaneously, concept of multithreading
+ is used.
+ 
+\end_layout
+
+\begin_layout Itemize
+Single individual thread for each player.
+ 
+\end_layout
+
+\begin_layout Itemize
+Separate thread to play audio files.
+ 
+\end_layout
+
+\begin_layout Itemize
+A separate process to play background music.
+\end_layout
+
+\begin_layout Itemize
+Main also contains initializer for the display and calls special and idle
+ functions.
+\end_layout
+
+\begin_layout Section
+
+\size normal
+Network Protocol
+\end_layout
+
+\begin_layout Itemize
+To play multiplayer, game server and client communicates through TCP/IP.
+ 
+\end_layout
+
+\begin_layout Itemize
+Abbreviation of Transmission Control Protocol, and pronounced as separate
+ letters.
+ TCP is one of the main protocols in TCP/IP networks.
+ 
+\end_layout
+
+\begin_layout Subsection
+Server
+\end_layout
+
+\begin_layout Itemize
+Server initiates the game giving a port number.
+\end_layout
+
+\begin_layout Itemize
+Various game parameters like friction, paddle speed etc are determined by
+ server.
+ 
+\end_layout
+
+\begin_layout Itemize
+Server sends the coordinates of ball as well as coordinates of all other
+ players to client.
+ 
+\end_layout
+
+\begin_layout Itemize
+There is different thread for each client in server, so that different client
+ processes can run simultaneously.
+ 
+\end_layout
+
+\begin_layout Itemize
+If server doesn't reveive message from any client for 5 second, connection
+ will be closed.
+\end_layout
+
+\begin_layout Subsection
+Client
+\end_layout
+
+\begin_layout Itemize
+Clients connect to server using server's IP address and port number.
+ 
+\end_layout
+
+\begin_layout Itemize
+Clients send only the coordinates of their paddle to server through sockets.
+\end_layout
+
+\begin_layout Itemize
+If client doesn't receive message from server for 5 second, it will close
+ the connection.
+\end_layout
+
+\begin_layout Subsection
+Reasons for using TCP :
+\end_layout
+
+\begin_layout Itemize
+Whereas the IP protocol deals only with packets, TCP enables two hosts to
+ establish a connection and exchange streams of data.
+\end_layout
+
+\begin_layout Itemize
+TCP guarantees delivery of data and also guarantees that packets will be
+ delivered in the same order in which they were sent.
+\end_layout
+
+\begin_layout Itemize
+TCP is a connection-oriented protocol 
+\end_layout
+
+\begin_layout Itemize
+The connection can be closed by either side; the other is notified.
+ Provision is made to close gracefully or just abort the connection.
+\end_layout
+
+\begin_layout Itemize
+Since it's in the os, handling incoming packets has fewer context switches
+ from kernel to user space and back; all the reassembly, acking, flow control,
+ etc is done by the kernel.
+\end_layout
+
+\begin_layout Itemize
+Most of the applications in today's time use TCP for data transfer so it
+ would help us to learn about the functioning of this protocol closely.
+\end_layout
+
+\begin_layout Section
+System Requirements
+\end_layout
+
+\begin_layout Standard
+Requirements:
+\end_layout
+
+\begin_layout Itemize
+Audio drivers installed
+\end_layout
+
+\begin_layout Itemize
+VLC player 
+\end_layout
+
+\begin_layout Itemize
+OpenGL libraries 
+\end_layout
+
+\begin_layout Itemize
+G++ compiler
+\end_layout
+
+\begin_layout Itemize
+Linux Operating System
+\end_layout
+
+\begin_layout Section
+Tests
+\end_layout
+
+\begin_layout Itemize
+Test by playing a computer against another computer.
+ 
+\end_layout
+
+\begin_layout Itemize
+Play with one ball, two balls, and three balls.
+ 
+\end_layout
+
+\begin_layout Standard
+Test in the following scenarios: 
+\end_layout
+
+\begin_layout Enumerate
+Both players are on the same or different computers and use my implementation
+ 
+\end_layout
+
+\begin_layout Enumerate
+Both players are on the same or different computers and one player uses
+ my implementation and the other player uses my partner's implementation
+ 
+\end_layout
+
+\begin_layout Enumerate
+Three players on three systems, one is server and two clients, using any
+ one of the implementations
+\end_layout
+
+\begin_layout Enumerate
+Four players on four systems, one is server and two clients, using any one
+ of the implementations.
+\end_layout
+
+\begin_layout Section
+Ideas
+\end_layout
+
+\begin_layout Standard
+Various other goals to make the game more interesting are :
+\end_layout
+
+\begin_layout Subsection
+
+\size normal
+Menu and Help Screens: 
+\end_layout
+
+\begin_layout Enumerate
+Various text screens include : The pre-game GUI, the in game GUI, the in
+ game help GUI and high score GUI
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+The pre-game GUI is a simple menu system which is controlled by mouse input,
+ and gives access to starting a new game, the single and multiplayer game
+ gui, an about gui embedded in it that gives information about the game
+ and information about the controls, and a quit button.
+ This will be preceded the first time by our team logo.
+\end_layout
+
+\begin_layout Enumerate
+The in game gui will be consist of ping-pong table, scoreboard , balls and
+ paddles.
+\end_layout
+
+\begin_layout Enumerate
+The in game help gui will provide the user a chance to access controls informati
+on about the game.
+ This will be implemented as a game pausing feature with a menu that pops
+ up in the middle of the screen for easy reading.
+\end_layout
+
+\begin_layout Enumerate
+The high scores gui will contain a simple list of the best scores recorded
+ going through the game.
+ It will be accessible by waiting at the title screen or beating the game.
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+The user will not cause the application to exit if s/he accidentally presses
+ Ctrl C in the terminal window; instead, a warning message will appear,
+ requiring that the user presses the escape key in the game window to terminate
+ the application.
+ 
+\end_layout
+
+\end_body
+\end_document
